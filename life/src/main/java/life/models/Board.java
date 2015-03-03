@@ -17,7 +17,7 @@ public class Board {
     private static final String _query = "SELECT x, y FROM cells WHERE " +
     				" (x >= ?) and (x < ? + ?) and " + 
     				" (y >= ?) and (y < ? + ?) and " + 
-    				" generation = ?";
+    				" gen = ?";
     
     public Board(int x, int y, int width, int height, int generation) {
     	_cells = _db.query(_query, new Object[]{x, x, width, y , y, height, generation }, Cell.rowMapper);
