@@ -2,42 +2,38 @@ package life.controllers;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.List;
 
 import javax.annotation.PostConstruct;
 
-import life.models.Board;
-import life.models.Cell;
+import life.models.CellModel;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
 
-@RestController
+@Component
 @EnableScheduling
 public class Game {
+	
 	@Autowired
 	JdbcTemplate _db;
     
-	@RequestMapping(name="/board", method={RequestMethod.GET})
-	Board getBoard(int left, int top, int width, int height, int generation){
-		return new Board(left, top, width, height, generation);
-	}
-	
-	@RequestMapping(name="/board", method={RequestMethod.POST})
-	boolean setCells(@ModelAttribute Cell[] cells, int generation) {
-		return doSet(cells, generation);
+	public List<CellModel> getCells(int x, int y, int width, int height, int generation){
+		final String query = "SELECT x, y FROM cells WHERE " +
+			" (x >= ?) and (x < ? + ?) and " + 
+			" (y >= ?) and (y < ? + ?) and " + 
+			" gen = ?";
+		
+		return _db.query(query, new Object[]{x, x, width, y , y, height, generation }, CellModel.rowMapper);
 	}
 	
 	@Transactional
-	boolean doSet(Cell[] cells, int generation) {
+	public boolean setCells(List<CellModel> cells, int generation) {
 		try {
 			if (generation != currentGen()) return false;
 			
@@ -45,39 +41,38 @@ public class Game {
 				
 				@Override
 				public void setValues(PreparedStatement ps, int i) throws SQLException {
-					ps.setInt(1, cells[i].getX());
-					ps.setInt(2, cells[i].getY());
+					ps.setInt(1, cells.get(i).getX());
+					ps.setInt(2, cells.get(i).getY());
 					ps.setInt(3, generation);
 				}
 				
 				@Override
 				public int getBatchSize() {
-					return cells.length;
+					return cells.size();
 				}
 			});
 		} catch (DataAccessException e) {
+			//TODO could be a bit more verbose about results
 			return false;
 		}
 		return true;
 	}
 	
-	int currentGen() {
-		return _db.queryForObject("SELECT COALESCE(MIN(val),0) FROM generation", Integer.class);
+	public int currentGen() {
+		return _db.queryForObject("SELECT COALESCE(MAX(gen),0) FROM cells", Integer.class);
 	}
 	
 	@Transactional
 	@PostConstruct
-	void setup() {
+	public void setup() {
 		try {
 			_db.execute(
-					  " CREATE TABLE IF NOT EXISTS generation ( val INT );"
-	
-					+ " CREATE TABLE IF NOT EXISTS cells "
+					  " CREATE TABLE IF NOT EXISTS cells "
 					+ " ("
-					+ " 	x   INT NOT NULL, "
-					+ "		y   INT NOT NULL, " 
-					+ " 	gen INT NOT NULL,"
-					+ "		UNIQUE (x, y, gen) "
+					+     " x   INT NOT NULL, "
+					+     " y   INT NOT NULL, " 
+					+     " gen INT NOT NULL,"
+					+     " UNIQUE (x, y, gen) "
 					+ " ); "
 					);
 			
@@ -96,26 +91,28 @@ public class Game {
 			_db.execute(
 					//TODO perf test: view vs separate table for current gen
 					  " CREATE VIEW IF NOT EXISTS alive AS"
-					+ "  SELECT x,y "
-					+ "	  FROM cells "
-					+ "	  WHERE gen = "
-					+ "        ( "
-					+ "	         SELECT COALESCE(MIN(val),0) FROM generation"
-					+ "        );"
+					+  " SELECT x,y "
+					+    " FROM cells "
+					+   " WHERE gen = "
+					+         " ("
+					+            " SELECT COALESCE(MAX(gen),0) FROM cells"
+					+         " )"
 					);
 			
 			_db.execute(
 					  " CREATE TABLE IF NOT EXISTS offsets "
 					+ " ("
-					+ "	    x INT, "
-					+ "	    y INT, "
-					+ " ); "
-	
-					+ " INSERT INTO offsets (x,y) "
+					+     " x INT, "
+					+     " y INT, "
+					+ " ) "
+					);
+			
+			_db.execute(
+					  " INSERT INTO offsets (x,y) "
 					+ "	VALUES "
-					+ "    (-1, -1), (-1, 0), (-1, 1),"
-					+ "     (0, -1),          (0, 1),"
-					+ "     (1, -1), (1, 0), (1, 1);"
+					+    " (-1, -1), (-1, 0), (-1, 1),"
+					+     " (0, -1),          (0, 1),"
+					+     " (1, -1), (1, 0), (1, 1);"
 					);
 			
 			_db.execute(
@@ -126,25 +123,25 @@ public class Game {
 					//                   queries
 					  " CREATE VIEW IF NOT EXISTS next AS "
 					+ " SELECT "
-					+ "        x, "
-					+ "        y, "
-					+ "        n IN (SELECT count FROM born) AS can_create,"
-					+ "        n IN (SELECT count FROM survive) AS can_survive "
-					+ "   FROM "
-					+ "        ( "
-					+ "          SELECT "
-					+ "                 alive.x+offsets.x AS x, "
-					+ "                 alive.y+offsets.y AS y, "
-					+ "                 count(*) AS n "
-					+ "            FROM alive "
-					+ "            JOIN offsets "
-					+ "        GROUP BY x,y "
-					+ "        )"
+					+        " x, "
+					+        " y, "
+					+        " n IN (SELECT count FROM born) AS can_create,"
+					+        " n IN (SELECT count FROM survive) AS can_survive "
+					+   " FROM "
+					+        " ( "
+					+          " SELECT "
+					+                 " alive.x+offsets.x AS x, "
+					+                 " alive.y+offsets.y AS y, "
+					+                 " count(*) AS n "
+					+            " FROM alive "
+					+            " JOIN offsets "
+					+        " GROUP BY x,y "
+					+        " )"
 					//TODO perf test: does filtering this view speed up queries involving it?
-					+ "  WHERE "
-					+ "        n IN (SELECT count FROM born) "
-					+ "        OR "
-					+ "        n IN (SELECT count FROM survive);"
+					+  " WHERE "
+					+        " n IN (SELECT count FROM born) "
+					+        " OR "
+					+        " n IN (SELECT count FROM survive);"
 					);
 		} catch (DataAccessException e) {
 			throw e;
@@ -152,32 +149,33 @@ public class Game {
 	}
 	
 	@Transactional
-	@Scheduled(fixedDelay=5000)
-	void update() {
+//	@Scheduled(fixedDelay=5000)
+	public void update() {
 		try {
 			int gen = currentGen();
 			//TODO perf test: there could be different strategies for this, but in the 
 			//                end I don't see any way to do it without iterating the `alive`
 			//                table once looking for survivors then iterating the `next`
 			//                table once looking for new cells.
-			_db.execute("INSERT INTO cells (x,y,gen) "
-					+ "       SORTED "
-					+ "       SELECT "
-					+ "              next.x, "
-					+ "              next.y, "
-					+                gen //TODO this correctly
-					+ "	        FROM "
-					+ "              next "
-					+ "    LEFT JOIN "
-					+ "              alive "
-					+ "           ON "
-					+ "              next.x = alive.x "
-					+ "              AND "
-					+ "              next.y = alive.y"
-					+ "        WHERE "
-					+ "              alive.x IS NOT NULL AND next.can_survive "
-					+ "              OR "
-					+ "              alive.x IS NULL AND next.can_create;"
+			_db.update("INSERT INTO cells (x,y,gen) "
+					+       " SORTED "
+					+       " SELECT "
+					+              " next.x, "
+					+              " next.y, "
+					+              " ?"
+					+         " FROM "
+					+              " next "
+					+    " LEFT JOIN "
+					+              " alive "
+					+           " ON "
+					+              " next.x = alive.x "
+					+              " AND "
+					+              " next.y = alive.y"
+					+        " WHERE "
+					+              " alive.x IS NOT NULL AND next.can_survive "
+					+              " OR "
+					+              " alive.x IS NULL AND next.can_create;",
+					gen + 1
 					);
 		} catch (DataAccessException e) {
 			throw e;
