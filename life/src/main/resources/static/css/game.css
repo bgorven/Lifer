@@ -1,0 +1,19 @@
+
+#board {
+  position: fixed;
+  table-layout: fixed;
+  left: -20px;
+  top: -20px;
+}
+
+td {
+  border: 1px solid black;
+  border-collapse: collapse;
+  min-width: 18px;
+  width: 18px;
+  height: 18px;
+  max-height: 18px;
+  text-align: center;
+  line-height: initial;
+  box-sizing: initial;
+}

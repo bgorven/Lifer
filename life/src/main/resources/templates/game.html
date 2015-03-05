@@ -8,6 +8,7 @@
 
     <!-- Bootstrap -->
     <link type="text/css" href="css/bootstrap.min.css" rel="stylesheet" />
+    <link type="text/css" href="css/game.css" rel="stylesheet" />
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -17,7 +18,15 @@
     <![endif]-->
   </head>
   <body>
-    <nav class="navbar navbar-default navbar-fixed-top">
+    <table id="board">
+      <tr th:each="i : ${#numbers.sequence( 0, board.height)}">
+        <td th:each="j : ${#numbers.sequence( 0, board.width)}" >
+          <img src="img/bullet.png" th:if="${#lists.contains(board.cells, new life.models.CellModel(board.x+j, board.y+i))}" />
+        </td>
+      </tr>
+    </table>
+  
+    <nav class="navbar navbar-default navbar-fixed-bottom">
       <div class="container-fluid">
         <!-- Brand and toggle get grouped for better mobile display -->
         <div class="navbar-header">
@@ -44,7 +53,7 @@
               </div>
               <div class="input-group">
                 <span class="input-group-addon">Generation</span>
-                <input type="text" name="generation" class="form-control" placeholder="0" th:placeholder="${board.generation}" />
+                <input type="text" name="generation" class="form-control" placeholder="0" th:value="${board.generation}" />
               </div>
             </div>
             <button type="submit" id="gotoBtn" class="btn btn-default">Go to</button>
