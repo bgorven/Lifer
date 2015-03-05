@@ -2,6 +2,8 @@ package life.controllers;
 
 import java.util.List;
 
+import life.models.Game;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;

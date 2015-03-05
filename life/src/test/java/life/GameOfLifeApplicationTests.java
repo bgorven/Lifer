@@ -3,8 +3,8 @@ package life;
 import java.util.Arrays;
 import java.util.List;
 
-import life.controllers.Game;
 import life.models.CellModel;
+import life.models.Game;
 
 import org.junit.Assert;
 import org.junit.Before;

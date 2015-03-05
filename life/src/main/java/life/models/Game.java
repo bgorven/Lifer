@@ -1,12 +1,10 @@
-package life.controllers;
+package life.models;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
-
-import life.models.CellModel;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -72,7 +70,7 @@ public class Game {
 					+     " x   INT NOT NULL, "
 					+     " y   INT NOT NULL, " 
 					+     " gen INT NOT NULL,"
-					+     " UNIQUE (x, y, gen) "
+					+     " PRIMARY KEY (x, y, gen) "
 					+ " ); "
 					);
 			
@@ -93,9 +91,7 @@ public class Game {
 					  " CREATE VIEW IF NOT EXISTS alive AS"
 					+  " SELECT x,y "
 					+    " FROM cells "
-					+   " WHERE gen = "
-					+         " ("
-					+            " SELECT COALESCE(MAX(gen),0) FROM cells"
+					+   " WHERE gen = (SELECT MAX(gen) FROM cells"
 					+         " )"
 					);
 			
