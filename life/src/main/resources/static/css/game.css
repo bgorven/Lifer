@@ -2,8 +2,6 @@
 #board {
   position: fixed;
   table-layout: fixed;
-  left: -20px;
-  top: -20px;
 }
 
 td {

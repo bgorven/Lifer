@@ -23,8 +23,8 @@ public class GameController {
 	String game(
 			@RequestParam(value="x", defaultValue="0") int x, 
 			@RequestParam(value="y", defaultValue="0") int y, 
-			@RequestParam(value="width", defaultValue="100") int width, 
-			@RequestParam(value="height", defaultValue="50") int height, 
+			@RequestParam(value="width", defaultValue="30") int width, 
+			@RequestParam(value="height", defaultValue="20") int height, 
 			@RequestParam(value="generation", defaultValue="-1") int generation, 
 			Model model) {
 		
