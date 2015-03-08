@@ -66,6 +66,12 @@
         </tr>
       </tbody>
     </table>
+    
+    <div id="preload">
+      <img src="img/alive.png" />
+      <img src="img/pending.png" />
+      <img src="img/unknown.png" />
+    </div>
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
@@ -74,9 +80,7 @@
     <script src="js/interact-1.2.4.min.js"></script>
     <script th:inline="javascript">
     /*<![CDATA[*/
-      window.Lifer = {
-        board: /*[[${board}]]*/ null,
-      }
+      window.Board = /*[[${board}]]*/ null;
     /*]]>*/
     </script>
     <script src="js/game.js"></script>

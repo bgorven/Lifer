@@ -1,12 +1,10 @@
 package life.controllers;
 
-import java.util.List;
-
 import life.models.BoardModel;
 import life.models.Game;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,7 +26,7 @@ public class CellController {
 	}
 	
 	@RequestMapping(method={RequestMethod.POST})
-	public boolean setCells(@ModelAttribute List<life.models.CellModel> cells, int generation) {
-		return game.setCells(cells, generation);
+	public boolean setCells(@RequestBody BoardModel board) {
+		return game.setCells(board.getCells(), board.getGeneration());
 	}
 }

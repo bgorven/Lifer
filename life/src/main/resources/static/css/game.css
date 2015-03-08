@@ -2,9 +2,11 @@
 #board {
   position: fixed;
   table-layout: fixed;
+  -webkit-transform: translate(0px, 0px);
+          transform: translate(0px, 0px);
 }
 
-td {
+#board td {
   border: 1px solid black;
   border-collapse: collapse;
   min-width: 18px;
@@ -14,4 +16,8 @@ td {
   text-align: center;
   line-height: initial;
   box-sizing: initial;
+}
+
+#preload {
+	display: none;
 }

@@ -3,8 +3,8 @@ $(document).ready(function () {
 	/*
 	 * The game board, which should have been preloaded by the page itself.
 	 */
-	if (window.hasOwnProperty('Lifer')) {
-		var Board = window.Lifer.board;
+	if (window.hasOwnProperty("Board")) {
+		var Board = window.Board;
 	} else {
 		var Board = {
 				x: 0,
@@ -34,7 +34,7 @@ $(document).ready(function () {
 	 * Extracts info about the DOM element containing the game board
 	 */
 	var getTableInfo = function(board) {
-		var table = board || document.getElementById("board");
+		var table = board;
 		var body = table.getElementsByTagName("tbody")[0];
 		var rows = body.getElementsByTagName("tr");
 		var exampleRow = rows[0].getElementsByTagName("td");
@@ -84,12 +84,9 @@ $(document).ready(function () {
 	 * Add or remove cells to fill the viewport.
 	 */  
 	var onResize = function() {
-		var oldInfo = getTableInfo();
+		var oldInfo = getTableInfo(document.getElementById("board"));
 		
-		var desiredWidth = $(window).width();
-		desiredWidth /= oldInfo.cellSize;
-		desiredWidth += 2;
-		desiredWidth |= 0;
+		var desiredWidth = ($(window).width()/oldInfo.cellSize + 2)|0;
 		var desiredHeight = ($(window).height()/oldInfo.cellSize + 2)|0;
 		
 		if (desiredWidth !== oldInfo.width || desiredHeight !== oldInfo.height) {
@@ -111,12 +108,16 @@ $(document).ready(function () {
 		}
 	};
 	
-	var hasCell = function(board, cell){
-		if (Array.isArray(board)) board = { cells: board };
-		for (var i = 0; i < board.cells.length; i++){
-			if (board.cells[i].x === cell.x && board.cells[i].y === cell.y) return true;
+	var hasCell = function(board, cell) {
+		if (!board.hasOwnProperty("lookup")) {
+			board.lookup = [];
+			board.cells.forEach(function(i) {
+				if (!board.lookup[i.x]) board.lookup[i.x] = [];
+				board.lookup[i.x][i.y] = true;
+			});
 		}
-		return false;
+		
+		return board.lookup[cell.x] && board.lookup[cell.x][cell.y];
 	} 
 	
 	
@@ -145,7 +146,7 @@ $(document).ready(function () {
 		        	y: tableInfo.y,
 		        	width: tableInfo.width,
 		        	height: tableInfo.height,
-		        	generation: Board.generation || -1
+		        	generation: Board.generation || Board.generation === 0 ? 0 : -1
 		        }
 		    }).then(function(data) {
 		       Board = data;
@@ -190,7 +191,7 @@ $(document).ready(function () {
 				
 				if (hasCell(Board, loc)){
 					setImage(row[i], "img/alive.png");
-				} else if (hasCell(CellsToAdd, loc)) {
+				} else if (CellsToAdd[loc.x] && CellsToAdd[loc.x][loc.y]) {
 					setImage(row[i], "img/pending.png");
 				} else if (!contains(Board, loc)) {
 					setImage(row[i], "img/unknown.png");
@@ -253,35 +254,80 @@ $(document).ready(function () {
 	 * when the window is moved, repaint immediately, and if some cells are unknown,
 	 * send an ajax request for the rest of the data.
 	 */
-	var position = $("#board").position();
+	var position = { x:0, y:0 };
 	var onMove = function(event) {
 		var table = getTableInfo(event.target);
 		
-		var calcX = calc(
-				position.left,
-				event.dx, 
-				table.cellSize);
-		event.target.style.top = calcX.pos + "px";
-		position.left = calcX.pos;
+		var calcX = calc(position.x, event.dx, table.cellSize);
+		position.x = calcX.pos;
 		table.x += calcX.shift;
 
-		var calcY = calc(
-				position.top,
-				event.dy, 
-				table.cellSize);
-		event.target.style.top = calcY.pos + "px";
-		position.top = calcY.pos;
+		var calcY = calc(position.y, event.dy, table.cellSize);
+		position.y = calcY.pos;
 		table.y += calcY.shift;
 		
+		event.target.style.webkitTransform =
+		      event.target.style.transform =
+		        'translate(' + position.x + 'px, ' + position.y + 'px)';
+		
 		refresh(table);
+	}
+	
+	var onTap = function(event) {
+		var table = getTableInfo(document.getElementById("board"));
+		var loc = {
+				x: ((event.pageX - position.x)/table.cellSize + Left)|0,
+				y: ((event.pageY - position.y)/table.cellSize + Top)|0
+		}
+		
+		if (!hasCell(Board, loc)) {
+			if (!CellsToAdd[loc.x]) CellsToAdd[loc.x] = [];
+			
+			if (CellsToAdd[loc.x][loc.y]) {
+				CellsToAdd[loc.x][loc.y] = false;
+			} else {
+				CellsToAdd[loc.x][loc.y] = true;
+			}
+		}
+		
+		repaint(table);
+	}
+	
+	var addCells = function() {
+		var cells = [];
+		CellsToAdd.forEach(function(col, x) {
+			col.forEach(function(cell, y) {
+				if (cell) {
+					cells.push({
+						x: x,
+						y: y
+					});
+				}
+			});
+		});
+		
+		$.ajax({
+			type: "POST",
+		    url: "/board",
+		    data: JSON.stringify( { cells: cells, generation: Board.generation } ),
+		    contentType: "application/json; charset=utf-8",
+		    dataType: "json",
+		}).then(function(data) {
+			if (data === true) {
+				CellsToAdd = [];
+				refresh(getTableInfo(document.getElementById("board")));
+			}
+		});
 	}
 
 	
 	onResize();
 	$(window).resize(onResize);
+	$("#addBtn").click(addCells).prop("type", "button");
 	interact("#board")
 		.draggable({
 			inertia: true,
 			onmove: onMove
-		});
+		})
+		.on("tap", onTap);
 });
