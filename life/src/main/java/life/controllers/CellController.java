@@ -2,6 +2,7 @@ package life.controllers;
 
 import java.util.List;
 
+import life.models.BoardModel;
 import life.models.Game;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +18,13 @@ public class CellController {
 	@Autowired Game game;
 	
 	@RequestMapping(method={RequestMethod.GET})
-	public List<life.models.CellModel> getCells(int x, int y, int width, int height, int generation){
-		return game.getCells(x, y, width, height, generation);
+	public BoardModel getCells(int x, int y, int width, int height, int generation){
+		generation = generation < 0 ? 0 : game.currentGen();
+		BoardModel board = new BoardModel(
+				x, y, width, height, generation, 
+				game.getCells(x, y, width, height, generation));
+		
+		return board;
 	}
 	
 	@RequestMapping(method={RequestMethod.POST})

@@ -1,10 +1,15 @@
 package life.models;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class BoardModel {
 	private int _x, _y, _width, _height, _generation;
 	private List<CellModel> _cells;
+	
+	public BoardModel() {
+		_cells = new ArrayList<CellModel>();
+	}
 
 	public BoardModel(int x, int y, int width, int height, int generation, List<CellModel> cells) {
 		_x = x;

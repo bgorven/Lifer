@@ -145,12 +145,10 @@ $(document).ready(function () {
 		        	y: tableInfo.y,
 		        	width: tableInfo.width,
 		        	height: tableInfo.height,
-		        	generation: Board.generation
+		        	generation: Board.generation || -1
 		        }
 		    }).then(function(data) {
 		       Board = data;
-		       
-		       repaint(tableInfo);
 		       
 		       //TODO: more and better ratelimiting.
 		       //with this setup, we don't send multiple requests in parallel,
@@ -158,10 +156,13 @@ $(document).ready(function () {
 		       refreshInProgress = false;
 		       
 		       //If the last refresh request comes in while a call is pending,
-		       //we don't want it to get lost.
+		       //we don't want it to get lost, and we don't want to shift the
+		       //screen back from where it's been moved to in the mean time.
 		       if (pendingRefreshInfo) {
 		    	   refresh(pendingRefreshInfo);
 		    	   pendingRefreshInfo = null;
+		       } else {
+			       repaint(tableInfo);
 		       }
 		    });
 		}
